@@ -19,7 +19,7 @@
 <div class="reveal">
 <div class="slides">
 
-<section data-markdown data-state=highlight><script type="text/template">
+<section data-markdown data-state="highlight"><script type="text/template">
 
   # No more pyramids
 
@@ -55,7 +55,7 @@
 
 <section data-markdown><script type="text/template">
 
-  <img src="doom.png" style="width:100%;height:100%" />
+  <img src="/doom.png" style="width:100%;height:100%" />
 
 </script></section>
 
@@ -872,5 +872,9 @@ Q.async = function (makeGenerator) {
     ]
 
   });
+Reveal.addEventListener( 'highlight', function() {
+  console.log("state")
+}, false );
+  
 </script>
 </body>
