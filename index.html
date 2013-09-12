@@ -160,7 +160,9 @@
   
   ## Pure-JS solution
 
-  ```
+  - replace inline closures with `bind`
+
+  ```javascript
   getUser(params["id"],gotUser);
 
   function gotUser(err,user) {
@@ -216,7 +218,7 @@
 <section data-markdown><script type="text/template">
   ## Parallel
 
-  - Sum of N processes compleating
+  - Sum of N processes completing
   
   ```
   var updatedA = false;
@@ -375,8 +377,8 @@
 
   ## No values
 
-  - Callbacks mean functions don't return
-  - Without a return, we can't talk about result of process
+  - Callbacks = functions don't return
+  - Without a return, can't do things with result of process
   - Can't write logic with something we don't have
 
 </script></section>
@@ -402,6 +404,14 @@
     res.send(500);
   }
   ```
+</script></section>
+
+
+
+<section data-markdown data-state=highlight><script type="text/template">
+
+  ## Can we have values with async?
+
 </script></section>
 
 <section data-markdown data-state=highlight><script type="text/template">
@@ -499,7 +509,10 @@
 
   ```
   var bothDone = Q.all(updateA,updateB);
-  bothDone.then(done);
+
+  bothDone.spread(function(a,b) {
+    /* use both */
+  });
   ```
 
 </script></section>
@@ -515,9 +528,7 @@
   [fileA,fileB,fileC].map(function(f) {
     return readFile(f)
   }).map(function(contents) {
-    return contents.then(function(content) {
-      return transform(content);
-    });
+    return contents.then(transform);
   }) // list of promises for transformed content
   ```
 
@@ -555,7 +566,7 @@
   - Still doesn't work with basic tools
 
   ```javascript
-  if(!user) 
+  if(!user) {}
 
   try {
     var profile = getProfile(user);
@@ -591,18 +602,19 @@
 <section data-markdown><script type="text/template">
 
   ## Can't we just block please?
-```
-// pseudo-code: not JS
-try
-  // composes with flow-control!
-  if(a = await A()) 
-    b = await B(a)
-    return await C(b)
-  else
-    return false
-catch e
-  // got an error from A, B or C
-```
+
+  ```
+  // pseudo-code: not JS
+  try
+    // composes with flow-control!
+    if(a = await A()) 
+      b = await B(a)
+      return await C(b)
+    else
+      return false
+  catch e
+    // got an error from A, B or C
+  ```
 </script></section>
 
 
@@ -612,7 +624,7 @@ catch e
 
   - Await gives us back lexical ordering 
   - Therefore must be way of blocking on async
-  - Gives us back control-flow
+  - Gives us back flow-control
 
   ```
   // pseudo-code: not JS
@@ -632,14 +644,14 @@ catch e
 
 <section data-markdown data-state=bad><script type="text/template">
 
-  # Not JS then?
+  # But, not JS?
 
 </script></section>
 
 
 <section data-markdown data-state=highlight><script type="text/template">
 
-  # It is JS, new JS!
+  # JS, new JS!
 
 </script></section>
 
@@ -654,7 +666,7 @@ catch e
 <section data-markdown><script type="text/template">
   ## ES6 Generators
 
-  - Are in draft spec
+  - In draft ES6 spec
   - `yield` returns control to caller
   - `yield` returns `{value,done}`
 
@@ -690,7 +702,9 @@ catch e
       var b = queryTwo();
       var c = queryThree();
       var results = [];
-      for(var promise of [a,b,c]) results.push(yield promise);
+      for(var promise of [a,b,c]) {
+        results.push(yield promise);
+      }
       return result;
     })
   }
@@ -757,7 +771,9 @@ catch e
   awaitable(function*() {
     var a = A();
     var b = B();
-    for(var p of [a,b]) yield p;
+    for(var p of [a,b]) {
+      yield p;
+    }
   })
   ```
 
@@ -792,7 +808,7 @@ catch e
 
 <section data-markdown><script type="text/template">
 
-  ## Leaks the await
+  ## Leaks the async
 
   - Still not blocking our single thread
   - This is good: knowing you're never pre-empted is a great JS feature
