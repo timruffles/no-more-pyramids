@@ -69,7 +69,7 @@
 
 <section data-markdown data-state=highlight><script type="text/template">
   
-  ## But they shouldn't
+  ## But they don't need to
 
 </script></section>
 
@@ -113,6 +113,16 @@
   - Either: loads of setup/tearDown
   - Or: loads of stubbing
   - Regardless of tool, don't inline everything
+
+  ```javascript
+  getUser(params["id"],function(err,user) {
+    // can't test
+    getProfile(user,function(err,profile) {
+      // can't test
+    })
+  });
+  ```
+
 
 </script></section>
 
@@ -720,15 +730,15 @@
   - Odds I'll get confused explaining: high
   - Luckily: can be a black box
 
-  ```javaascript
+  ```javascript
   Q.async = function (makeGenerator) {
       return function () {
           function continuer(verb, arg) {
               var result;
               try {
                   result = generator[verb](arg);
-              } catch (exception) {
-                  return reject(exception);
+              } catch(e) {
+                  return makeRejectedPromise(e);
               }
               if (result.done) { return result.value; }
               else { return Q(result.value).then(callback, errback); }
@@ -840,7 +850,7 @@
   - You should't inline everything
   - JS has tools
   - When they fall down: async
-  - Promises for values, beat time!
+  - Promises for values, defeat time!
   - Generators for clean code
 
 </script></section>
