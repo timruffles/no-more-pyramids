@@ -2,7 +2,7 @@
 <head>
     <meta charset="utf-8">  
     <title>No more pyramids - keeping callbacks neat</title>
-    <link rel="stylesheet" href="reveal/css/reveal.min.css">
+    <link rel="stylesheet" href="reveal/css/reveal.css">
     <link rel="stylesheet" href="reveal/css/theme/solarized.css" id="theme">
     <!-- <link rel="stylesheet" href="reveal/css/print/pdf.css"> -->
 
@@ -30,26 +30,9 @@
 </section>
 
 
-<section data-markdown><script type="text/template">
+<section data-markdown data-state=highlight><script type="text/template">
   
-  ## Async IO
-
-  An epocal achievement
-
-  - Penicillin - 1928
-  - Apollo landings - 1969
-  - c10k solved - 2006 - epoll() call on cover of Time magazine
-  - now we can Tweet about cat pictures, FAST
-
-</script></section>
-
-<section data-markdown><script type="text/template">
-  
-  ## Node loves callbacks
-
-  - Easy - just like jQuery!
-  - Nice for server writers - low coupling flow
-  - Hideous for application code with high logical coupling
+  ## We got callback hell wrong
 
 </script></section>
 
@@ -61,7 +44,7 @@
 
 <section data-markdown><script type="text/template">
 
-  ## It really happens
+  ## Pyramids do really happen
 
   - Nameless code from github
   - For a PaaS
@@ -77,38 +60,203 @@
       }
     });
 };
+// oh it's only five callbacks
   ```
+
+</script></section>
+
+
+
+<section data-markdown data-state=highlight><script type="text/template">
+  
+  ## But they don't need to
 
 </script></section>
 
 
 <section data-markdown data-state=highlight><script type="text/template">
   
-  # Things that cause a mess
+  ## A: don't write them
+
+</script></section>
+
+
+<section data-markdown data-state=highlight><script type="text/template">
+  
+  # We need to manage processes
+
+</script></section>
+
+<section data-markdown ><script type="text/template">
+  
+  <img src="/process.png" width=600 />
+
+</script></section>
+
+<section data-markdown><script type="text/template">
+  
+  ## Our process
+
+  ```
+  var user = getUser(params["id"]);
+  if(!user) return res.send(404);
+
+  try {
+    var profile = getProfile(user);
+    if(profile) {
+      update(user,profile,params);
+    } else {
+      profile = create(user,params);
+    }
+    return res.send(profile);
+  } catch(e) {
+    res.send(500);
+  }
+  ```
+
+
+</script></section>
+
+<section data-markdown data-state=highlight><script type="text/template">
+  
+  # async IO == implementation detail
+
+</script></section>
+
+
+<section data-markdown><script type="text/template">
+  
+  ## Basic implementation
+
+  ```
+  getUser(params["id"],function(err,user) {
+    if(!user) return res.send(404);
+    getProfile(user,function(err,profile) {
+      if(err) return res.send(500);
+      if(profile) {
+        update(user,profile,params,function(err) {
+          if(err) return res.send(500);
+          res.send(profile);
+        })
+      } else {
+        create(user,params,function(err,profile) {
+          if(err) return res.send(500);
+          res.send(profile);
+        })
+      }
+    })
+  });
+  ```
+
+</script></section>
+
+<section data-markdown><script type="text/template">
+  
+  ## The pyramid can be solved
+
+  ```
+  getUser(params["id"],gotUser);
+  function gotUser(err,user) {
+    if(!user) return res.send(404);
+    getProfile(user,saveProfile.bind(this,user));
+  }
+  function saveProfile(user,err,profile) {
+    if(err) return res.send(500);
+    if(profile) {
+      update(user,profile,params,saved);
+    } else {
+      create(user,params,saved);
+    }
+  }
+  function saved(err,profile) {
+    if(err) return res.send(500);
+    res.send(profile);
+  }
+  ```
+
+</script></section>
+
+
+
+<section data-markdown><script type="text/template">
+  
+  ## Promise implementation
+
+  ```
+  var ourFault = res.send.bind(res,500);
+  var profile = getUser(params["id"])
+    .then(getProfile,res.send.bind(res,404))
+    .then(saveProfile,ourFault)
+    .then(res.send.bind(res),ourFault)
+    .done();
+
+  function saveProfile(user,err) {
+    if(profile) {
+      return update(user,profile)
+    } else {
+      return create(user,params,created)
+    }
+  }
+  ```
+
+</script></section>
+
+
+
+<section data-markdown><script type="text/template">
+  
+  ## Generator implementation
+
+  ```
+  var handler = processRunner(function*(params,res) {
+    var user = yield getUser.partial(params["id"]);
+    if(!user) return res.send(404);
+
+    try {
+      var profile = yield getProfile.partial(user);
+      if(profile) {
+        yield update.partial(user,profile,params);
+      } else {
+        profile = yield create.partial(user,params);
+      }
+      res.send(profile);
+    } catch(e) {
+      res.send(500);
+    }
+  });
+  ```
+
+</script></section>
+
+<section data-markdown><script type="text/template">
+
+  ## Dependant Processes 
+  
+  - Forwarding data not just control flow 
+  - Wrong way: closures
+  - Right way: loads of `bind`
+
+</script></section>
+
+<section data-markdown><script type="text/template">
+
+  ## What can't be solved?
+  
 
 
 </script></section>
 
 <section data-markdown><script type="text/template">
-  ## Dependant Processes 
-  
-  - Forwarding data not just control flow 
-  - Requires an extra step each time to keep shared variables
-  - Or *loads* of arguments passed about
 
+  ## How does bind work?
 
-  ```
-  get("/users/:id/messages",function(req,res) {
-    findUser(req.id,function(user) {
-      findMessages(user,function(messages) {
-        // add arbitrary levels of dependent queries
-        render(user,messages);
-      })
-    })
-  })
-  ```
+  - Sets `this` and part of the arguments
+  - Returns a partially filled in function
+  - You call and fill in the rest
+  - Allows us to bind context without closures
 
 </script></section>
+
 
 
 <section data-markdown><script type="text/template">
@@ -226,6 +374,7 @@
   ## Solutions?
 
   - Observers
+  - Bind
   - Async.js
   - Promises
   - await - ES6
@@ -470,14 +619,12 @@
   
   ## Multiple-dependencies
 
-  - Still requires nesting
+  - Doesn't require nesting - we have values!
 
   ```
-  A.then(function(aResult) {
-    return B.then(function(bResult) {
-      return C(aResult,bResult);
-    });
-  })
+  var aResult = A();
+  var bResult = aResult.then(B)
+  bResult.then(C);
   ```
 
 </script></section>
@@ -501,7 +648,7 @@
 
   ## Enumerations
 
-  - Less library code for straight maps
+  - No library code for straight maps
   - Still requires library for more interesting enumeration
 
   ```
@@ -544,7 +691,7 @@
       <th>Async.js</th><th>P</th><th>✔</th><th>✔</th><th>✔</th><th>✘</th>
     </tr>
     <tr>
-      <th>Promises</th><th>P</th><th>✔</th><th>✔</th><th>✔</th><th>✘</th>
+      <th>Promises</th><th>✔</th><th>✔</th><th>✔</th><th>✔</th><th>P</th>/
     </tr>
   </table>
 
@@ -768,21 +915,12 @@ Q.async = function (makeGenerator) {
       <th>Async.js</th><th>P</th><th>✔</th><th>✔</th><th>✔</th><th>✘</th>
     </tr>
     <tr>
-      <th>Promises</th><th>P</th><th>✔</th><th>✔</th><th>✔</th><th>✘</th>
+      <th>Promises</th><th>✔</th><th>✔</th><th>✔</th><th>✔</th><th>P</th>
     </tr>
     <tr>
       <th>Await</th><th>✔</th><th>✔</th><th>✔</th><th>✔</th><th>✔</th>
     </tr>
   </table>
-
-</script></section>
-
-<section data-markdown><script type="text/template">
-
-  ## Not mentioned: exotic options
-
-  - [Node Fibers](https://github.com/laverdet/node-fibers)
-  - [Clojurescript async channels](http://clojure.com/blog/2013/06/28/clojure-core-async-channels.html)
 
 </script></section>
 
