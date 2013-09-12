@@ -120,6 +120,10 @@
 				border-radius: 10px;
 			}
 
+      .clock {
+        display: none;
+      }
+
 			.elapsed h2,
 			.clock h2 {
 				font-size: 0.8em;
@@ -128,9 +132,20 @@
 				color: #aaa;
 			}
 
+      .time .elapsed {
+        font-size: 6em;
+      }
+      .time .elapsed h2 {
+        display: none;
+      }
+
 			.elapsed .mute {
 				color: #ddd;
 			}
+
+      #reset {
+        font-size: 2rem;
+      }
 
 		</style>
 	</head>
@@ -154,6 +169,7 @@
 			<div class="elapsed">
 				<h2>Elapsed</h2>
 				<span id="hours">00</span><span id="minutes">:00</span><span id="seconds">:00</span>
+        <button id=reset onclick="start = new Date()">Reset</button>
 			</div>
 		</div>
 
@@ -161,6 +177,7 @@
 
 		<script src="../../plugin/markdown/showdown.js"></script>
 		<script>
+      var start;
 
 			window.addEventListener( 'load', function() {
 
@@ -197,7 +214,8 @@
 
 					}, false );
 
-					var start = new Date(),
+          start = new Date()
+          var
 						timeEl = document.querySelector( '.time' ),
 						clockEl = document.getElementById( 'clock' ),
 						hoursEl = document.getElementById( 'hours' ),
